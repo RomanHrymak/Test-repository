@@ -1,0 +1,2536 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "OpenBOM CAD Integration Toolkit",
+    "version" : "1.0",
+    "description" : "The OpenBOM Integration toolkit allows to build CAD add-ins using the internal integration API. This allows developers to programmatically save and access data stored in the OpenBOM user account. \n\n# Getting started\n 1. Each developer will need to get a token from OpenBOM and use it with each and every request to the internal integration API. Currently  the only requirement you should perform before getting started is to click on the «Authorize» button and paste the corresponding value into the «Token» textbox. Developers must send requests to get token to support@openbom.com.\n 2. In addition, access token must be provided in every request.\n 3. The OpenBOM API will only respond to secured communication done over HTTPS. HTTP requests will be sent a 301 redirect to corresponding HTTPS resources.\n 4. The response to every request is sent in JSON format, with the content-type header set appropriately. In case the API request results in an error, it is represented by an error {} key in the JSON response.\n 5. The API calls will respond with appropriate HTTP status codes for all requests.\n 6. To prevent abuse, OpenBOM imposes rate limits on all incoming requests, in general 5 requests per second is the top limit (Subject to changes in the future). 429 response status code will be returned when the limit is reached.\n \n\n# Introduction\n This section describes the general rules and guidelines applicable across all internal integration APIs. There you will find the basic instruction of how to configure your own application that is supposed to be integrated with OpenBOM.\n \n\n# OpenBOM integration for CAD system\n The main question you are interested the most is what are the basic steps to build your first integration with OpenBOM? You'll get a short description of how to setup this kind of workflow and allow customer Add-In application works properly with an OpenBOM functionality. It's definitely clear that each CAD platform may require specific approaches of add-in configuration and even with parts schema however here there is an instruction which is responsible to help you getting started:\n 1. It's expected that the main component of Add-in will be Settings. Right there a user will have an ability to authorize into OpenBOM account and of course to configure options that are related to other integration processes.\n 2. The second important thing in your Add-in will be the part of workflow where users may try exporting their first BOM. For example, let's say it's a special control which can extract all data from the active document model.\n 3. The next functionality that can be interesting for users will be an ability to provide export settings. Sometimes depending on CAD specifics it may be useful to allow various scenarious of export.\n 4. Once the point regarding an export workflow is completed, why don't to describe the execution of Bi-Directional Exchange? The program tool which allows not only sending data from CAD to OpenBOM but also retrieve parameters back for update purposes can obviosly improve the user experience while working with the OpenBOM integration.\n 5. There is no restrictions to provide other functionality features which may help users to work with their CAD data much more efficient. For instance, you can develop an embedded web browser panel or window in you CAD platform where a user will get a quick access to the important Product structure. The same thing may be developed for Views which are the great helpers of data filtering. Don't hesitate to make your own Add-in application with a big set of useful tools. \n\n# Authorization and Authentication\n To get access to the internal integration definitions, each developer needs to obtain a token being available to proceed with the api usage. If there is a need to work through the Swagger specification therefore, as it was mentioned previously, a developer should send a corresponding request to support@openbom.com.\n\n **Temporarily the only way to proceed with api execution here is to obtain an access token from the Dev tools while working with the OpenBOM service.**\n\n If you are going to configure an integration app, here are some steps that have to be performed before getting started with OpenBOM api calls.\n 1. First of all, there is a requirement to prepare methods for user authorization and authentication. OpenBOM service of course provides this kind of definition. Here is the set of parameters for the authorization process:\n \n + Request for retrieving token object\n```\n Method: POST /v1/oauth/token\n```\n \n + Request headers\n```\n Content-Type: application/x-www-form-urlencoded\n``` \n```\n Accept: application/json\n```\n \n + Request parameters\n```\n grant_type: password\n``` \n```\n username: <username_value>\n``` \n```\n password: <password_value>\n```\n \n + Response structure\n```\n{\n   «access_token»: <access_token>,\n   «refresh_token»: <auth_key>,\n   «token_type»: ”Bearer”,\n   «expires_in»: 86400\n}\naccess_token (string) - All further API calls must have this key in request header.\n```\n 2. In case if there is a need to authorize into account which uses Multi-Factor authentication, you need to perform OpenBOM authentication process. Here is the set of parameters for this one:\n \n + Request for retrieving session token info\n```\n Method: POST /v1/authn\n```\n \n + Request body\n```\n application/json:\n {\n   «Login»: <username_value>,\n   «Password»: <password_value>\n }\n```\n \n + Response structure\n```\n{\n   «expiresAt»: <access_token>,\n   «status»: <auth_key>,\n   «sessionToken»: ”Bearer”,\n   «_embedded»:\n   {\n        «user»:\n       {\n           «id»: <user_id>,\n           «passwordChanged»: <passwordChanged>,\n           «profile»:\n           {\n               «login»: <username>,\n               «firstName»: <user_firstName>,\n               «lastName»: <user_lastName>,\n               «locale»: <locale>,\n               «timeZone»: <timeZone>\n           }\n       }\n   }\n}\n```\n \n\n# BOMs and Catalogs\n It's important to stay tuned that the most significant api definion which OpenBOM service can suggest is the import workflow. It allows for developers to manage the generation of their specified BOMs and Catalogs from the integration apps.\n\n \n\n## Catalogs (Items and Part Numbers)\n Catalogs are used to store your standard items, engineering items, and products, and are reusable. You can think of your catalogs as a library for all items you can use in your BOMs. Every item you use in the bill of materials (for every part or assembly/sub-assembly) must be defined in the catalog first. You can use it as a database to define your items for all BOMs.\n\n A part number is the key element of OpenBOM data management. Every record in the OpenBOM catalog is associated with a part number and it becomes a unique identifier for your parts and assemblies. Part numbers are used in OpenBOM parent-child relationships.\n \n\n## Bill of Materials (Product structure)\n A bill of materials (BOM), or product structure, is a list of the assemblies, items, and the quantities needed of each to get a finished product. Catalog items can be reused in BOMs, and you can add additional information to the catalog items in the BOMs, such as quantity or reference designation.\n\n Generally speaking, Catalogs and BOMs are the most important elements of OpenBOM’s information model. Here is the api definition which is responsible to allow for developers manage the import workflow of BOMs:\n \n + Request for importing BOM structure\n```\n Import BOM: POST /v1/api/import/bom\n```\n\n```\n Import Catalog: POST /v1/api/import/inventory\n```\n\n\n\n# Available Features\n From now you can check the following functionality:\n 1. Get properties and property tables.\n 2. Get, create and update Views. Retrieve details about the particular View. Delete views.\n 3. Get, import and update BOMs/Catalogs. Get the detailed information about the specified BOM/Catalog. Associate BOM with Catalog.\n 4. Get templates and the specified based on the templated id.\n\n If there is a need to check the results of api execution, do the following steps:\n 1. Make sure that the application key is applied in the authorization section.\n 2. Select the OpenBOM api which you would like to test.\n 3. Expand the content and click on the «Try it out» button. Make sure that all required parameters and request body if needed are filled.\n 4. Once everything is configured correctly, start the execution. If you did the right setup, you'll get status code 200 or 201."
+  },
+  "servers" : [ {
+    "url" : "https://api.openbom.com",
+    "description" : "OpenBOM server"
+  } ],
+  "security" : [ {
+    "Token" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "Properties",
+    "description" : "Retrieve and manage properties and property tables"
+  }, {
+    "name" : "Views",
+    "description" : "Manage views and the ways how they can be retrieved or updated"
+  }, {
+    "name" : "BOMs",
+    "description" : "Methods for working with the BOM workflow"
+  }, {
+    "name" : "Templates",
+    "description" : "Methods for working with the Tenplate workflow"
+  }, {
+    "name" : "Catalogs",
+    "description" : "Methods for working with the Catalog workflow"
+  } ],
+  "paths" : {
+    "/v1/api/propertytables/mine" : {
+      "get" : {
+        "tags" : [ "Properties" ],
+        "summary" : "Get user's property tables",
+        "operationId" : "listMyPropertyTables",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PropertyTable"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/propertytable/{propertytableId}" : {
+      "get" : {
+        "tags" : [ "Properties" ],
+        "summary" : "Get the property table based on its id",
+        "operationId" : "getPropertyTable",
+        "parameters" : [ {
+          "name" : "propertytableId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PropertyTable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/properties/propertytable/{propertyTableId}" : {
+      "get" : {
+        "tags" : [ "Properties" ],
+        "summary" : "Get properties of the selected property table",
+        "operationId" : "listPrivateTableProperties",
+        "parameters" : [ {
+          "name" : "propertyTableId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomDocumentProperty"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/properties/private" : {
+      "get" : {
+        "tags" : [ "Properties" ],
+        "summary" : "Get private properties",
+        "operationId" : "listPrivateProperties",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomDocumentProperty"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/globalViewConfig" : {
+      "put" : {
+        "tags" : [ "Views" ],
+        "summary" : "Update the view or create a new one if it's not exist",
+        "operationId" : "updateViewConfig",
+        "parameters" : [ {
+          "name" : "shareWithTeam",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json;charset=UTF-8" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserDocumentViewConfig"
+              }
+            },
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserDocumentViewConfig"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Views" ],
+        "summary" : "Create a new view",
+        "operationId" : "createViewConfig",
+        "parameters" : [ {
+          "name" : "shareWithTeam",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json;charset=UTF-8" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserDocumentViewConfig"
+              }
+            },
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserDocumentViewConfig"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/globalViewConfig/{viewConfigId}" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get the view based on its id",
+        "operationId" : "getViewConfig",
+        "parameters" : [ {
+          "name" : "viewConfigId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Views" ],
+        "summary" : "Delete the view based on its id",
+        "operationId" : "deleteViewConfig",
+        "parameters" : [ {
+          "name" : "viewConfigId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/v1/api/globalViewConfig/inventory" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get the default catalog view",
+        "operationId" : "getGlobalItemsViewConfig",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/globalViewConfig/document" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get the default document view",
+        "operationId" : "getGlobalBomViewConfig",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/globalViewConfigs/list" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get the list of views",
+        "operationId" : "getAccessibleGlobalViewConfigsUser",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/allproperties/inventory" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get all item properties",
+        "operationId" : "getItemsAllProperties",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/allproperties/document" : {
+      "get" : {
+        "tags" : [ "Views" ],
+        "summary" : "Get all document properties",
+        "operationId" : "getBomAllProperties",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDocumentViewConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/{bomId}/inventory/{itemsId}" : {
+      "put" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Associate BOM with Catalog",
+        "operationId" : "associateItemsTable",
+        "parameters" : [ {
+          "name" : "bomId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "itemsId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Disassociate BOM with Catalog",
+        "operationId" : "disassociateItemsTable",
+        "parameters" : [ {
+          "name" : "bomId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "itemsId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/v1/api/import/bom" : {
+      "post" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Import BOM document",
+        "operationId" : "ImportBomDocument",
+        "parameters" : [ {
+          "name" : "bomType",
+          "in" : "query",
+          "description" : "The bomtype of generated BOM.",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "BOM structure",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BomStructure"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/{bomId}/image" : {
+      "get" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get image from the specified BOM",
+        "operationId" : "getImageProperty_2",
+        "parameters" : [ {
+          "name" : "bomId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "filename",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Upload image file to the specified BOM",
+        "operationId" : "storeImagePropertyFile_2",
+        "parameters" : [ {
+          "name" : "bomId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "partNumber",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "imageProperty",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/v1/api/document/find/byparams" : {
+      "post" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get the set of documents based on params",
+        "operationId" : "getBomDocumentsByParams",
+        "requestBody" : {
+          "content" : {
+            "application/json;charset=UTF-8" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/graph/bom/{documentId}/composedof" : {
+      "get" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get the BOM document composition",
+        "operationId" : "getBomDocumentComposition",
+        "parameters" : [ {
+          "name" : "documentId",
+          "in" : "path",
+          "description" : "The id of the BOM document.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GraphNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/{bomdocid}" : {
+      "get" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get BOM document based on its id",
+        "operationId" : "getDocumentWithMergedInventoryItems",
+        "parameters" : [ {
+          "name" : "viewid",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "useview",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "eval",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "evalBackground",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "bomdocid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BomDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/product/{product}" : {
+      "get" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get all product documents",
+        "operationId" : "getDocumentsByProduct",
+        "parameters" : [ {
+          "name" : "product",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/graph/user/boms/mine" : {
+      "get" : {
+        "tags" : [ "BOMs" ],
+        "summary" : "Get the list of all graph BOMs",
+        "operationId" : "getBoms",
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GraphNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/import/inventory" : {
+      "post" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Import catalog",
+        "operationId" : "importCatalog",
+        "requestBody" : {
+          "description" : "Catalog structure",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InventoryStructure"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/inventory/{itemsId}/image" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get image from the specified catalog",
+        "operationId" : "getImageProperty_1",
+        "parameters" : [ {
+          "name" : "itemsId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "filename",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Upload image file to the specified catalog",
+        "operationId" : "storeImagePropertyFile_1",
+        "parameters" : [ {
+          "name" : "itemsId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "partNumber",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "imageProperty",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        }
+      }
+    },
+    "/v1/api/inventory/find/byparams" : {
+      "post" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get the set of catalogs based on params",
+        "operationId" : "getItemsDocumentsByParams",
+        "requestBody" : {
+          "content" : {
+            "application/json;charset=UTF-8" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemsDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/inventory/{itemsdocid}/nextpartnumber" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Retrieve part number from Catalog relative to the last existing part number value",
+        "operationId" : "generatePN",
+        "parameters" : [ {
+          "name" : "itemsdocid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/graph/part/inventories" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get the set of graph catalogs based on the item's part number",
+        "operationId" : "getCatalogsByPartNumber",
+        "parameters" : [ {
+          "name" : "partNumber",
+          "in" : "query",
+          "description" : "The part number of the item.",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GraphNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/graph/user/inventories/mine" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get the set of all graph catalogs",
+        "operationId" : "getCatalogs",
+        "responses" : {
+          "200" : {
+            "description" : "Success",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GraphNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/inventory/{itemsdocid}" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get the catalog based on its id",
+        "operationId" : "getDocument_1",
+        "parameters" : [ {
+          "name" : "viewid",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "eval",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "itemsdocid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemsDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/inventory/product/{product}" : {
+      "get" : {
+        "tags" : [ "Catalogs" ],
+        "summary" : "Get all product catalogs",
+        "operationId" : "getItemsDocumentsByProduct",
+        "parameters" : [ {
+          "name" : "product",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemsDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/templates/mine" : {
+      "get" : {
+        "tags" : [ "Templates" ],
+        "summary" : "Get the list of user's graph templates",
+        "operationId" : "listMyDocumentTemplates",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GraphBomDocumentTemplate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/templates" : {
+      "get" : {
+        "tags" : [ "Templates" ],
+        "summary" : "Get the list of templates",
+        "operationId" : "listDocumentTemplates",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BomDocumentTemplate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/document/template/{templateid}" : {
+      "get" : {
+        "tags" : [ "Templates" ],
+        "summary" : "Get the template based on its id",
+        "operationId" : "getDocumentTemplate",
+        "parameters" : [ {
+          "name" : "templateid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json;charset=UTF-8" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BomDocumentTemplate"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "DocumentViewColumn" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "propertyid" : {
+            "type" : "string"
+          },
+          "datatype" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "pnProperty" : {
+            "type" : "boolean"
+          },
+          "sourcePropertyId" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "alias" : {
+            "type" : "string"
+          }
+        }
+      },
+      "UserDocumentViewConfig" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentViewColumn"
+            }
+          },
+          "catalogAliases" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "docTypes" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "BOM", "CHANGEREQUEST", "ITEMS", "VENDORLIST" ]
+            }
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "permission" : {
+            "type" : "string"
+          },
+          "teamOwned" : {
+            "type" : "boolean"
+          },
+          "shareWithTeam" : {
+            "type" : "boolean"
+          },
+          "filter" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "sharedPermission" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DocumentPermission" : {
+        "type" : "object",
+        "properties" : {
+          "perm" : {
+            "type" : "string"
+          },
+          "user" : {
+            "type" : "string"
+          },
+          "viewConfigId" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DocumentViewConfig" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentViewColumn"
+            }
+          },
+          "catalogAliases" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      },
+      "SingleLevelViewConfig" : {
+        "type" : "object",
+        "properties" : {
+          "boms" : {
+            "$ref" : "#/components/schemas/DocumentViewConfig"
+          },
+          "items" : {
+            "$ref" : "#/components/schemas/DocumentViewConfig"
+          }
+        }
+      },
+      "ExpressionDef" : {
+        "type" : "object",
+        "properties" : {
+          "op" : {
+            "type" : "string"
+          },
+          "variables" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object"
+                }
+              }
+            }
+          },
+          "quantityProp" : {
+            "type" : "string"
+          },
+          "mlrollup" : {
+            "type" : "boolean"
+          },
+          "storeRollupInCatalog" : {
+            "type" : "boolean"
+          },
+          "nonRollupCondition" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "DocumentColumnHeader" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "propRef" : {
+            "type" : "string"
+          },
+          "datatype" : {
+            "type" : "string"
+          },
+          "sourcePropertyId" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DocumentDisplayFormat" : {
+        "type" : "object",
+        "properties" : {
+          "colWidth" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "colAlign" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "fixedColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rowHeight" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "propertyAlias" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "textWrap" : {
+            "type" : "boolean"
+          },
+          "colFormat" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "displayTotals" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "DocumentViewData" : {
+        "type" : "object",
+        "properties" : {
+          "rowOrder" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "GenerationParams" : {
+        "type" : "object",
+        "properties" : {
+          "partsOnly" : {
+            "type" : "boolean"
+          },
+          "combineByName" : {
+            "type" : "boolean"
+          },
+          "geometricalData" : {
+            "type" : "boolean"
+          },
+          "bomType" : {
+            "type" : "string"
+          },
+          "bomLayout" : {
+            "type" : "string"
+          },
+          "vaultId" : {
+            "type" : "string"
+          },
+          "fileId" : {
+            "type" : "string"
+          },
+          "fileVersion" : {
+            "type" : "string"
+          },
+          "autogenerated" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MultiLevelViewConfig" : {
+        "type" : "object",
+        "properties" : {
+          "boms" : {
+            "$ref" : "#/components/schemas/DocumentViewConfig"
+          },
+          "items" : {
+            "$ref" : "#/components/schemas/DocumentViewConfig"
+          }
+        }
+      },
+      "Part" : {
+        "type" : "object",
+        "properties" : {
+          "partName" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "originalSourceId" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SourceVersionInfo" : {
+        "type" : "object",
+        "properties" : {
+          "applicationId" : {
+            "type" : "string"
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "assemblyId" : {
+            "type" : "string"
+          },
+          "assemblyName" : {
+            "type" : "string"
+          },
+          "versionId" : {
+            "type" : "string"
+          },
+          "versionName" : {
+            "type" : "string"
+          },
+          "configuration" : {
+            "type" : "string"
+          },
+          "versionCreatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "workspaceId" : {
+            "type" : "string"
+          },
+          "workspaceName" : {
+            "type" : "string"
+          },
+          "partstudioId" : {
+            "type" : "string"
+          },
+          "workspaceCreatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generationParams" : {
+            "$ref" : "#/components/schemas/GenerationParams"
+          }
+        }
+      },
+      "ItemsDocument" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "copyId" : {
+            "type" : "string"
+          },
+          "viewConfigId" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "summaryData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "referenceData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "columns" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/DocumentColumnHeader"
+            }
+          },
+          "displayFormat" : {
+            "$ref" : "#/components/schemas/DocumentDisplayFormat"
+          },
+          "columnOrder" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "readonlyColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "viewData" : {
+            "$ref" : "#/components/schemas/DocumentViewData"
+          },
+          "formulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/ExpressionDef"
+                }
+              }
+            }
+          },
+          "summaryFormulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/ExpressionDef"
+              }
+            }
+          },
+          "autoFormula" : {
+            "type" : "boolean"
+          },
+          "singleLevelViewConfig" : {
+            "$ref" : "#/components/schemas/SingleLevelViewConfig"
+          },
+          "created_by" : {
+            "type" : "string"
+          },
+          "updated_by" : {
+            "type" : "string"
+          },
+          "sharedWith" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentPermission"
+            }
+          },
+          "userPermission" : {
+            "type" : "string"
+          },
+          "get_type" : {
+            "type" : "string"
+          },
+          "get_v" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "get_m" : {
+            "type" : "string"
+          },
+          "get_class" : {
+            "type" : "string"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "geometricalPartNumbers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Part"
+            }
+          },
+          "sourceProduct" : {
+            "type" : "string"
+          },
+          "documentUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bomUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sourceVersionInfo" : {
+            "$ref" : "#/components/schemas/SourceVersionInfo"
+          },
+          "partNumberPattern" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "autoPartNumbers" : {
+            "type" : "boolean"
+          },
+          "uniquePartNumbers" : {
+            "type" : "boolean"
+          },
+          "restrictNewRow" : {
+            "type" : "boolean"
+          },
+          "anonymousAccess" : {
+            "type" : "boolean"
+          },
+          "configurationName" : {
+            "type" : "string"
+          },
+          "generationParams" : {
+            "$ref" : "#/components/schemas/GenerationParams"
+          },
+          "companyCatalog" : {
+            "type" : "boolean"
+          },
+          "defaultItemMasterCatalog" : {
+            "type" : "boolean"
+          },
+          "collectionName" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PropertyTable" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "uri" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "updatedBy" : {
+            "type" : "string"
+          },
+          "sharedWith" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentPermission"
+            }
+          },
+          "permission" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "private" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "BomDocumentProperty" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "uri" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "privateTableId" : {
+            "type" : "string"
+          },
+          "publicProperty" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "A", "D" ]
+          },
+          "datatype" : {
+            "type" : "string",
+            "enum" : [ "N", "T", "S", "M", "C", "L", "I", "R", "U", "D", "Y" ]
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "S", "U" ]
+          },
+          "created_by" : {
+            "type" : "string"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "BomDocument" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "copyId" : {
+            "type" : "string"
+          },
+          "viewConfigId" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "summaryData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "referenceData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "columns" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/DocumentColumnHeader"
+            }
+          },
+          "displayFormat" : {
+            "$ref" : "#/components/schemas/DocumentDisplayFormat"
+          },
+          "columnOrder" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "readonlyColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "viewData" : {
+            "$ref" : "#/components/schemas/DocumentViewData"
+          },
+          "formulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/ExpressionDef"
+                }
+              }
+            }
+          },
+          "summaryFormulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/ExpressionDef"
+              }
+            }
+          },
+          "autoFormula" : {
+            "type" : "boolean"
+          },
+          "singleLevelViewConfig" : {
+            "$ref" : "#/components/schemas/SingleLevelViewConfig"
+          },
+          "created_by" : {
+            "type" : "string"
+          },
+          "updated_by" : {
+            "type" : "string"
+          },
+          "sharedWith" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentPermission"
+            }
+          },
+          "userPermission" : {
+            "type" : "string"
+          },
+          "get_type" : {
+            "type" : "string"
+          },
+          "get_v" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "get_m" : {
+            "type" : "string"
+          },
+          "get_class" : {
+            "type" : "string"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "geometricalPartNumbers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Part"
+            }
+          },
+          "sourceProduct" : {
+            "type" : "string"
+          },
+          "documentUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bomUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sourceVersionInfo" : {
+            "$ref" : "#/components/schemas/SourceVersionInfo"
+          },
+          "partNumberPattern" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "autoPartNumbers" : {
+            "type" : "boolean"
+          },
+          "uniquePartNumbers" : {
+            "type" : "boolean"
+          },
+          "restrictNewRow" : {
+            "type" : "boolean"
+          },
+          "anonymousAccess" : {
+            "type" : "boolean"
+          },
+          "bomPartNumber" : {
+            "type" : "string"
+          },
+          "lockToInventory" : {
+            "type" : "boolean"
+          },
+          "versionId" : {
+            "type" : "string"
+          },
+          "itemsViewColumns" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          },
+          "configurationName" : {
+            "type" : "string"
+          },
+          "generationParams" : {
+            "$ref" : "#/components/schemas/GenerationParams"
+          },
+          "released" : {
+            "type" : "boolean"
+          },
+          "tla" : {
+            "type" : "boolean"
+          },
+          "customizable" : {
+            "type" : "boolean"
+          },
+          "partNumberMappingProperty" : {
+            "type" : "string"
+          },
+          "originalBomColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "multiLevelViewConfig" : {
+            "$ref" : "#/components/schemas/MultiLevelViewConfig"
+          },
+          "sourceTemplateId" : {
+            "type" : "string"
+          },
+          "productionBatch" : {
+            "type" : "boolean"
+          },
+          "bomOrigin" : {
+            "type" : "string"
+          },
+          "collectionName" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BomDocumentTemplate" : {
+        "type" : "object",
+        "properties" : {
+          "get_id" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "copyId" : {
+            "type" : "string"
+          },
+          "viewConfigId" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "summaryData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "referenceData" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "object"
+              }
+            }
+          },
+          "columns" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/DocumentColumnHeader"
+            }
+          },
+          "displayFormat" : {
+            "$ref" : "#/components/schemas/DocumentDisplayFormat"
+          },
+          "columnOrder" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "readonlyColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "viewData" : {
+            "$ref" : "#/components/schemas/DocumentViewData"
+          },
+          "formulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/ExpressionDef"
+                }
+              }
+            }
+          },
+          "summaryFormulaRef" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/ExpressionDef"
+              }
+            }
+          },
+          "autoFormula" : {
+            "type" : "boolean"
+          },
+          "singleLevelViewConfig" : {
+            "$ref" : "#/components/schemas/SingleLevelViewConfig"
+          },
+          "created_by" : {
+            "type" : "string"
+          },
+          "updated_by" : {
+            "type" : "string"
+          },
+          "sharedWith" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentPermission"
+            }
+          },
+          "userPermission" : {
+            "type" : "string"
+          },
+          "get_type" : {
+            "type" : "string"
+          },
+          "get_v" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "get_m" : {
+            "type" : "string"
+          },
+          "get_class" : {
+            "type" : "string"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updated" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "geometricalPartNumbers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Part"
+            }
+          },
+          "sourceProduct" : {
+            "type" : "string"
+          },
+          "documentUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bomUpdatedVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sourceVersionInfo" : {
+            "$ref" : "#/components/schemas/SourceVersionInfo"
+          },
+          "partNumberPattern" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "autoPartNumbers" : {
+            "type" : "boolean"
+          },
+          "uniquePartNumbers" : {
+            "type" : "boolean"
+          },
+          "restrictNewRow" : {
+            "type" : "boolean"
+          },
+          "anonymousAccess" : {
+            "type" : "boolean"
+          },
+          "bomPartNumber" : {
+            "type" : "string"
+          },
+          "lockToInventory" : {
+            "type" : "boolean"
+          },
+          "versionId" : {
+            "type" : "string"
+          },
+          "itemsViewColumns" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          },
+          "configurationName" : {
+            "type" : "string"
+          },
+          "generationParams" : {
+            "$ref" : "#/components/schemas/GenerationParams"
+          },
+          "released" : {
+            "type" : "boolean"
+          },
+          "tla" : {
+            "type" : "boolean"
+          },
+          "customizable" : {
+            "type" : "boolean"
+          },
+          "partNumberMappingProperty" : {
+            "type" : "string"
+          },
+          "originalBomColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "multiLevelViewConfig" : {
+            "$ref" : "#/components/schemas/MultiLevelViewConfig"
+          },
+          "sourceTemplateId" : {
+            "type" : "string"
+          },
+          "publicTemplate" : {
+            "type" : "boolean"
+          },
+          "retainInventory" : {
+            "type" : "boolean"
+          },
+          "collectionName" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ApplicationContext" : {
+        "type" : "object",
+        "properties" : {
+          "startupDate" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "autowireCapableBeanFactory" : {
+            "$ref" : "#/components/schemas/AutowireCapableBeanFactory"
+          },
+          "applicationName" : {
+            "type" : "string"
+          },
+          "parent" : {
+            "$ref" : "#/components/schemas/ApplicationContext"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "environment" : {
+            "$ref" : "#/components/schemas/Environment"
+          },
+          "beanDefinitionCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "beanDefinitionNames" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "parentBeanFactory" : {
+            "$ref" : "#/components/schemas/BeanFactory"
+          },
+          "classLoader" : {
+            "type" : "object",
+            "properties" : {
+              "parent" : {
+                "type" : "object",
+                "properties" : {
+                  "defaultAssertionStatus" : {
+                    "type" : "boolean",
+                    "writeOnly" : true
+                  }
+                }
+              },
+              "defaultAssertionStatus" : {
+                "type" : "boolean",
+                "writeOnly" : true
+              }
+            }
+          }
+        }
+      },
+      "AutowireCapableBeanFactory" : {
+        "type" : "object"
+      },
+      "BeanFactory" : {
+        "type" : "object"
+      },
+      "Environment" : {
+        "type" : "object",
+        "properties" : {
+          "activeProfiles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "defaultProfiles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "GraphBomDocumentTemplate" : {
+        "type" : "object",
+        "properties" : {
+          "nodeId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "templateId" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "user" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "permissionString" : {
+            "type" : "string"
+          },
+          "permission" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "created" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdString" : {
+            "type" : "string"
+          },
+          "modifiedBy" : {
+            "type" : "string"
+          },
+          "modified" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedString" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ImportGenerationParams" : {
+        "type" : "object",
+        "properties" : {
+          "bomType" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BomProperty" : {
+        "type" : "object",
+        "properties" : {
+          "sourcePropertyId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BomItem" : {
+        "type" : "object",
+        "properties" : {
+          "sourceId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "configurationName" : {
+            "type" : "string"
+          },
+          "thumbnail" : {
+            "type" : "string"
+          },
+          "itemLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "properties" : {
+            "$ref" : "#/components/schemas/BomProperty"
+          }
+        }
+      },
+      "BomImportDocument" : {
+        "type" : "object",
+        "properties" : {
+          "extractorVersion" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string"
+          },
+          "sourceProduct" : {
+            "type" : "string"
+          },
+          "sourceProductVersion" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "configurationName" : {
+            "type" : "string"
+          },
+          "mergeDocumentId" : {
+            "type" : "string"
+          },
+          "generationParams" : {
+            "$ref" : "#/components/schemas/ImportGenerationParams"
+          },
+          "created" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BomItem"
+            }
+          }
+        }
+      },
+      "BomStructure" : {
+        "type" : "object",
+        "properties" : {
+          "bomdocument" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BomImportDocument"
+            }
+          }
+        }
+      },
+      "InventoryStructure" : {
+        "type" : "object",
+        "properties" : {
+          "inventorydocument" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BomImportDocument"
+            }
+          }
+        }
+      },
+      "BomResponse" : {
+        "type" : "object",
+        "properties" : {
+          "documentUpdatedVersion" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        }
+      },
+      "GraphNode" : {
+        "type" : "object",
+        "properties" : {
+          "nodeId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "bomId" : {
+            "type" : "string"
+          },
+          "itemsId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameuri" : {
+            "type" : "string"
+          },
+          "user" : {
+            "type" : "string"
+          },
+          "companyCatalog" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "permissionString" : {
+            "type" : "string"
+          },
+          "permission" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "modifiedBy" : {
+            "type" : "string"
+          },
+          "modified" : {
+            "type" : "string",
+            "format" : "data-time"
+          },
+          "bomPartNumber" : {
+            "type" : "string"
+          },
+          "productionBatch" : {
+            "type" : "boolean"
+          },
+          "numUnits" : {
+            "type" : "object"
+          },
+          "released" : {
+            "type" : "boolean"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "Token" : {
+        "type" : "apiKey",
+        "name" : "token",
+        "in" : "query"
+      }
+    }
+  }
+}
